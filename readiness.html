@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Readiness Quick Scorer</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171d2b;
+    --panel-2: #1f2637;
+    --line: #2a3346;
+    --text: #e8ecf4;
+    --muted: #97a3ba;
+    --accent: #5b8def;
+    --accent-2: #7c5cff;
+    --track: #2a3346;
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    --radius: 16px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --panel-2: #f7f9fc;
+      --line: #e4e9f2;
+      --text: #1a2130;
+      --muted: #5d6b83;
+      --track: #e4e9f2;
+      --shadow: 0 10px 40px rgba(31, 45, 71, 0.10);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(91, 141, 239, 0.18), transparent 55%),
+      radial-gradient(1000px 500px at 110% 10%, rgba(124, 92, 255, 0.15), transparent 50%),
+      var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    padding: 40px 20px 64px;
+  }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  header h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px;
+  }
+
+  .card h2 {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 20px;
+    font-weight: 600;
+  }
+
+  .dim {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .dim:last-child { border-bottom: none; padding-bottom: 0; }
+  .dim:first-of-type { padding-top: 0; }
+
+  .dim-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .dim-name {
+    font-weight: 600;
+    font-size: 1.02rem;
+  }
+
+  .dim-desc {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+
+  .dim-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--accent);
+    min-width: 44px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--track);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border: 3px solid var(--panel);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.15); }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border: 3px solid var(--panel);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+  }
+
+  /* Score panel */
+  .score-panel { text-align: center; position: sticky; top: 24px; }
+
+  .gauge {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin: 4px auto 18px;
+  }
+  .gauge svg { transform: rotate(-90deg); }
+  .gauge-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .gauge-score {
+    font-size: 2.8rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+  .gauge-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .tier-badge {
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.01em;
+    color: #fff;
+    margin-bottom: 16px;
+    transition: background 0.3s ease;
+  }
+
+  .tier-rec {
+    color: var(--text);
+    font-size: 0.95rem;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: left;
+  }
+  .tier-rec strong { display: block; margin-bottom: 6px; }
+  .tier-rec span { color: var(--muted); }
+
+  .tiers-legend {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 18px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .tiers-legend .chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tiers-legend .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AI Readiness Quick Scorer</h1>
+    <p>Rate your organization across five dimensions to see where you stand.</p>
+  </header>
+
+  <div class="grid">
+    <!-- Sliders -->
+    <div class="card">
+      <h2>Assessment</h2>
+      <div id="dimensions"></div>
+    </div>
+
+    <!-- Score -->
+    <div class="card score-panel">
+      <h2>Your Score</h2>
+      <div class="gauge">
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <circle cx="90" cy="90" r="78" fill="none" stroke="var(--track)" stroke-width="14" />
+          <circle id="gaugeArc" cx="90" cy="90" r="78" fill="none"
+                  stroke="url(#grad)" stroke-width="14" stroke-linecap="round"
+                  stroke-dasharray="490" stroke-dashoffset="490" />
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#5b8def" />
+              <stop offset="100%" stop-color="#7c5cff" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="gauge-center">
+          <div class="gauge-score" id="scoreVal">0</div>
+          <div class="gauge-label">/ 100</div>
+        </div>
+      </div>
+
+      <div class="tier-badge" id="tierBadge">Explorer</div>
+      <div class="tier-rec" id="tierRec"></div>
+
+      <div class="tiers-legend">
+        <span class="chip"><span class="dot" style="background:#ef6f6f"></span>Explorer 0–39</span>
+        <span class="chip"><span class="dot" style="background:#f0a860"></span>Builder 40–69</span>
+        <span class="chip"><span class="dot" style="background:#3fbf87"></span>Scaler 70–100</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>Composite score is the average of all five dimensions. Move the sliders — everything updates live.</footer>
+</div>
+
+<script>
+  const DIMENSIONS = [
+    {
+      key: "strategy",
+      name: "Strategy & Vision",
+      desc: "Clear goals and leadership buy-in for how AI supports the mission."
+    },
+    {
+      key: "data",
+      name: "Data Readiness",
+      desc: "Quality, accessibility, and governance of the data AI would rely on."
+    },
+    {
+      key: "technology",
+      name: "Technology & Infrastructure",
+      desc: "Tools, platforms, and integrations needed to deploy AI safely."
+    },
+    {
+      key: "talent",
+      name: "Skills & Talent",
+      desc: "Staff capacity, literacy, and access to expertise to use AI well."
+    },
+    {
+      key: "governance",
+      name: "Governance & Culture",
+      desc: "Policies, ethics, and an organizational culture ready to adopt AI."
+    }
+  ];
+
+  const TIERS = [
+    {
+      name: "Explorer",
+      min: 0, max: 39,
+      color: "#ef6f6f",
+      rec: "You're at the starting line. Focus on building awareness: run an AI literacy session for your team, identify one or two painful, repetitive tasks, and experiment with off-the-shelf tools before investing in anything custom."
+    },
+    {
+      name: "Builder",
+      min: 40, max: 69,
+      color: "#f0a860",
+      rec: "You have real foundations. Pick a high-value pilot, clean up the data behind it, and put lightweight governance in place. Document what works so you can repeat it — the goal now is turning experiments into reliable, owned workflows."
+    },
+    {
+      name: "Scaler",
+      min: 70, max: 100,
+      color: "#3fbf87",
+      rec: "You're ready to scale. Standardize your best pilots across teams, invest in integration and monitoring, and formalize responsible-AI practices. Measure impact rigorously and reinvest the gains into your next wave of use cases."
+    }
+  ];
+
+  const state = {};
+  DIMENSIONS.forEach(d => state[d.key] = 50);
+
+  const container = document.getElementById("dimensions");
+  DIMENSIONS.forEach(d => {
+    const wrap = document.createElement("div");
+    wrap.className = "dim";
+    wrap.innerHTML = `
+      <div class="dim-head">
+        <span class="dim-name">${d.name}</span>
+        <span class="dim-val" id="val-${d.key}">50</span>
+      </div>
+      <div class="dim-desc">${d.desc}</div>
+      <input type="range" min="0" max="100" value="50" id="slider-${d.key}" aria-label="${d.name}" />
+    `;
+    container.appendChild(wrap);
+
+    const slider = wrap.querySelector(`#slider-${d.key}`);
+    slider.addEventListener("input", () => {
+      state[d.key] = Number(slider.value);
+      document.getElementById(`val-${d.key}`).textContent = slider.value;
+      update();
+    });
+  });
+
+  const CIRC = 2 * Math.PI * 78; // ~490
+
+  function tierFor(score) {
+    return TIERS.find(t => score >= t.min && score <= t.max) || TIERS[0];
+  }
+
+  function update() {
+    const vals = DIMENSIONS.map(d => state[d.key]);
+    const score = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+
+    document.getElementById("scoreVal").textContent = score;
+
+    const arc = document.getElementById("gaugeArc");
+    arc.style.transition = "stroke-dashoffset 0.4s ease";
+    arc.setAttribute("stroke-dasharray", CIRC.toFixed(0));
+    arc.style.strokeDashoffset = (CIRC * (1 - score / 100)).toFixed(1);
+
+    const tier = tierFor(score);
+    const badge = document.getElementById("tierBadge");
+    badge.textContent = tier.name;
+    badge.style.background = tier.color;
+
+    document.getElementById("tierRec").innerHTML =
+      `<strong>${tier.name}</strong><span>${tier.rec}</span>`;
+  }
+
+  update();
+</script>
+</body>
+</html>
